@@ -237,7 +237,7 @@ Primero miro los datos mejor con str. Veo las variables y los tipos. Seguidament
 ```{r}
 str(raw)
 
-raw_tidy <- raw %>%
+billboard_tidy <- raw %>%
   pivot_longer(
     cols = starts_with("wk"),
     names_to = "week",
@@ -245,7 +245,7 @@ raw_tidy <- raw %>%
     names_prefix = "wk"
   ) %>% mutate(week = as.numeric(week))
 
-raw_tidy
+billboard_tidy
 
 ```
 
@@ -253,12 +253,12 @@ Ahora añado una nueva columan con mutate que se corresponda a las dates en form
 
 ```{r}
 
-raw_tidy <- raw_tidy %>%
+billboard_tidy <- billboard_tidy %>%
   mutate(
     date = as.Date(date.entered) + 7 * (week - 1)
   )
 
-head(raw_tidy)
+head(billboard_tidy)
 ```
 
 ## Varias variables en una misma columna
@@ -368,7 +368,7 @@ Vamos a cargar el conjunto de datos `VuelosNY.Rdata` que contiene dos data frame
 
 library(dplyr)
 #library(dbplyr)
-rm(list=ls())
+#rm(list=ls())
 load("./data/VuelosNY.Rdata")
 ```
 
@@ -495,9 +495,24 @@ Separa los datos *tidy* que teníamos en el ejercicio 2 en dos tablas (data fram
 
 Opcionalmente se puede crear un identificador, `id`, asociado al nombre de la canción (`track`), y en la tabla de ranking solo usaremos este identificador en lugar del nombre de la canción.
 
+Empiezo usando select para quedarme con las columnas que necesito en cada nueva tabla. Les añado unique al final para que se asegure de que los valores no se repiten. Seguidamente para añadirle el id uso mutate, que me crea una nueva columan con el valor del número de la fila. Esto le añade un valor de id a cada track en el dataframe songs. Después uso el left_join para añadir el ranking los valores de las canciones identificandolas por track. Así tengo la información del id. FInalmente con select me quedo solo con las columnas que necesito.
+
 ```{r}
 
+head(billboard_tidy)
 
+songs <- billboard_tidy %>% select(artist, track, time) %>% unique() %>% mutate(id = row_number())
+
+#version usando el nombre de track
+ranking <- billboard_tidy %>% select(track, week, rank)  %>% unique() 
+
+# en esta segunda versión uso id como identificador en vez de la canción.
+
+ranking <- ranking %>% left_join(songs, by =  "track" ) %>% select(id, rank, week) 
+
+
+head(songs)
+head(ranking)
 
 ```
 
