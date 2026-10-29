@@ -432,6 +432,8 @@ Reasigna los nombres de los data frames `planes.f` y `flights.f` a los nombres o
 
 ```{r }
 
+planes <- planes.f
+flights <- flights.f
 ```
 
 ### Ejercicio 9
