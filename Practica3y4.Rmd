@@ -458,8 +458,13 @@ str(planes)
 
 Incorpora una nueva variable a `flights` denominado `Full_Date` que sea de tipo `character` que incorpore una cadena de texto de la forma `d-m-Y`. Donde `d` indica día, `m` mes e `Y` año, a partir de la información incluida en el data frame. Utiliza una función de **DPLYR** que permita conseguir este propósito. Elimina las variables originales involucradas en la creación de la nueva variable.
 
+No entiendo porque no aparecen los dos ultimos valores en el año, si uso la Y mayúscula al hacer el format. Con select elimino después las 3 variables que he usado.
+
 ```{r }
 
+flights <- flights %>% mutate(Full_Date= as.Date(paste(day, month, year, sep = "-", format = "%d-%m-%Y"))) %>% select(-year, -month, -day)
+
+str(flights)
 
 ```
 
