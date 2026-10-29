@@ -1,0 +1,513 @@
+---
+title: "Práctica 3 y 4. Preparación y manejo de Datos"
+subtitle: "Análisis Exploratorio de Datos, Máster en Ciencia de Datos - UV"
+author: "Francesc Oliver Catany"
+output:
+  html_document:
+    echo: yes
+    number_sections: no
+    theme: lumen
+    toc: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: no
+---
+
+```{r setup, cache=F, echo=F, message=F, warning=F, tidy=F}
+# CONFIGURACIÓN GENERAL
+library(knitr)
+options(width=100)
+# Opciones generales chunks
+opts_chunk$set(echo=TRUE, message=F, error=F, warning=F,
+               comment=NA, fig.align='center', dpi=100, tidy=F,
+               cache.path='./cache/', fig.path='./figure/',
+               fig.width=6, fig.height=2)
+
+# options(xtable.type='html')
+knit_hooks$set(inline=function(x) {
+  if(is.numeric(x)) {
+    round(x, getOption('digits'))
+  } else {
+    paste(as.character(x), collapse=', ')
+  }
+})
+# knit_hooks$set(plot=knitr:::hook_plot_html)
+```
+
+```{r}
+library(pacman)
+packages=c("tidyverse", "knitr", "ggplot2", "datasets", "RColorBrewer",'dplyr','lubridate',"nycflights13")
+pacman::p_load(char=packages)
+
+```
+
+# TidyR
+
+## Introducción
+
+El objetivo de esta práctica es preparar los datos de una manera estructurada. Para ello vamos a seguir las recomendaciones del artículo de Hadley Wickham, *Tidy Data*, donde nos muestra una forma de estructurar (u organizar) los datos, de manera que se faciliten posteriores cadenas de procesado (visualización, obtención de datos estadísticos, modelización, etc.).
+
+Decimos que un conjunto de datos está estructurado u organizado (se usa el término *tidy* en inglés) cuando cumple estas tres condiciones:
+
+1.  Cada variable está en una columna.
+2.  Cada observación está en una fila.
+3.  Cada unidad de observación está en una tabla.
+
+Por el contrario, si no se cumple cualquiera de estas tres condiciones decimos que los datos están desordenados (*messy*).
+
+Parece fácil, pero el problema viene al definir exactamente qué es lo que entendemos por variables y observaciones.
+
+- Una variable (columna) contiene los valores correspondientes a un atributo (ej. altura, tiempo, etc.).
+- Una observación (fila) contiene los valores medidos sobre la misma unidad (una persona, una fecha, una muestra etc.) a lo largo de los atributos.
+
+Vamos a ver un ejemplo con el dataset IRIS.
+
+```{r}
+head(iris)
+```
+
+¿Es un conjunto *tidy*?
+
+- ¿Cada variable está en una columna? Depende de lo que definamos como variable. Según hemos visto, una variable debería contener todos los valores que miden un atributo. En este caso el atributo `Width` aparece en dos columnas, `Sepal.Width` y `Petal.Width`. Lo mismo ocurre con `Length`. También las partes de la flor: `Sepal` y `Petal` aparecen en varias columnas.
+
+- ¿Cada fila es una única observación?
+
+Veamos que aspecto tiene el conjunto IRIS una vez estructurado:
+
+```{r}
+load('data/iris_tidy.Rdata')
+head(iris.tidy)
+```
+
+Como se puede observar, en la versión *tidy* se han reorganizado los datos de manera que todos los valores medidos en una misma unidad ocupan una única columna. Para ello se han creado dos nuevas columnas correspondientes a dos nuevas variables, `Part`, que indica si se trata de `Sepal` o `Petal`, y `Measure`, que indica si se ha medido `Length` o `Width`.
+
+### Librería `tidyr`: organización de datos en tablas
+
+Para ayudarnos en la tarea de estructurar los datos según este formato *tidy*, en R se dispone de la librería `tidyr`. Consulta cualquier cheatsheet sobre tidyR para ver cuáles son las funciones más importantes de esta librería. En esta práctica veremos sobretodo las siguientes:
+
+- `gather(data, key, value, ...)`: permite agrupar o juntar varias columnas en una sola en función de una misma clave (`key`) que toma los valores de los encabezados de las columnas agrupadas, y una columna `value` toma los valores de sus celdas.
+- `spread(data, key, value, ...)`: hace lo contrario que `gather`, divide o esparce los valores que toma una variable dada por `key`/`value` como nuevas columnas cuyos nombres son los valores de `key`.
+- `separate(data, col, into, ...)`: separa los contenidos que hay en una columna en varias columnas sin cambiar el número de observaciones (no confundir con `spread`).
+- `unite(data, col, ...)`: hace lo contrario de `separate`, junta los contenidos de varias columnas (no confundir con `gather`).
+
+Aunque `gather` y `spread` se siguen utilizando, existen dos nuevas funciones de `tidyr` que tienen un comportamianto similar:
+
+- `pivot_longer(data, cols, names_to, values_to)`: condensa la información de las columnas `cols` en dos, dadas por los valores de sus encabezados (`names_to`), y los contenidos de sus celdas (`values_to`).
+- `pivot_wider(data, names_from, values_from)`: es el caso inverso: extiende las columnas dadas por `names_from` y `values_from` a tantas columnas como valores tome la variable `names_from`.
+
+También son interesantes las siguientes:
+
+- `drop_na(data, ...)`: elimina las filas que contienen NA's.
+- `fill(data, ...)`: sustituye los NA's por el valor más reciente no NA.
+- `replace_na(data, replace=list(), ...)`: reemplaza los NA's con los valores suministrados.
+
+Volviendo al ejemplo del dataset IRIS, veamos cómo podemos usar `gather` y `separate` para convertir el conjunto original `iris` en el conjunto `iris.tidy`.
+
+```{r iris.tidy}
+library(tidyr)
+# Primero agrupamos todas las unidades
+# Agrupamos todas las columnas con datos excepto Species, que está bien
+# iris.t <- gather(data=iris, key="Part", value="Value", 1:4)
+#iris.t <- gather(iris, Part, Value, Sepal.Length:Petal.Width)
+iris.t <- gather(iris, Part, Value, -Species)
+head(iris.t)
+# Luego separamos la variable Part en dos, Part y Measure
+iris.t <- separate(iris.t, Part, into=c("Part", "Measure"))
+head(iris.t)
+```
+
+Ahora ya tiene formato *tidy*. Cada columna contiene una variable, y cada fila una observación.
+
+Podemos hacer lo mismo con `pivot_longer`. Observa como cambia la ordenación de las filas.
+
+```{r iris.tidy.2}
+
+iris.t.2 <- pivot_longer(iris, col=-Species, names_to="Part", values_to="Value")
+head(iris.t.2)
+# Luego separamos la variable Part en dos, Part y Measure
+iris.t.2 <- separate(iris.t.2, Part, into=c("Part", "Measure"))
+head(iris.t.2)
+```
+
+### Librería `magrittr`: ceci n'est pas une pipe
+
+Como habrás observado, para conseguir formatear el conjunto `iris` hemos tenido que aplicar dos operaciones, `gather` y `separate`. Esto nos ha obligado a tener que crear una variable, `iris.t`, donde almacenar el resultado de `gather`, para luego pasárselo a `separate`. También podríamos haber hecho algo como:
+
+```{r iris.tidy lioso}
+iris.t <- separate(gather(iris, Part, Value, -Species),
+                   Part, into=c("Part", "Measure"))
+head(iris.t)
+```
+
+Pero queda algo confuso, y aún lo es más cuando en lugar de dos operaciones hemos de realizar varias seguidas.
+
+Una alternativa es usar la librería `magrittr` que define el operador `%>%` que permite encadenar este tipo acciones. El concepto es que los datos pasan de una función a otra como a través de una tubería (*pipe* en inglés) de funciones. Veamos cómo queda nuestro ejemplo:
+
+```{r iris.tidy magrittr}
+iris.t <- gather(iris, Part, Value, -Species) %>% separate(Part, into=c("Part", "Measure")) 
+iris.t %>% head
+```
+
+Fíjate que no hace falta especificar el primer argumento en las funciones `gather`, `separate` y `head`. El operador `%>%` automáticamente lo hace por nosotros.
+
+### Ejemplo de visualización
+
+¿Por qué es mejor el formato *tidy* que el original? Una razón es que algunas librerías y funciones esperan encontrar los datos en formato *tidy*, entre ellas `ggplot2`. Por ejemplo, imagina que queremos representar los datos separados en función de la medida realizada, *Sepal o Petal*. Con los datos originales es complicado, puesto que esta información aparece distribuida en cuatro columnas. Con el conjunto *tidy* es inmediato.
+
+```{r iris.tidy ggplot}
+library(ggplot2)
+ggplot(iris.t) + aes(Species, Value, color=Species) +
+  geom_jitter() + facet_grid(Part ~ .)
+```
+
+En los siguientes ejercicios veremos los ejemplos más típicos de datos desorganizados, o *messy data*:
+
+- Las cabeceras de las columnas son variables en sí mismas, no nombres de variables.
+- Más de una variable aparece en una sola columna.
+- Las variables aparecen tanto en filas como en columnas.
+- Varias unidades de observación están almacenadas en una única tabla.
+- Una única unidad de observación está almacenada en varias tablas.
+
+## Las cabeceras de las columnas son variables en lugar de nombres de variables
+
+El siguiente conjunto de datos muestra la relación entre los ingresos y la religión en EEUU.
+
+```{r load religion example}
+print(load('data/pew_religion.Rdata'))
+head(pew_religion[, 1:10])
+```
+
+Como se ve, las cabeceras son valores de una variable de tipo factor (los ingresos) en lugar de nombres de variables.
+
+Este conjunto de datos tiene en realidad tres variables, que deberían estar en tres columnas: `religion`, `ingresos` y `frecuencia` (esta última con el número de casos).
+
+Para ver la utilidad de organizar los datos en formato *tidy*, imagina que quisieramos realizar un gráfico donde se mostrará la cantidad de gente por cada intervalo de ingresos:
+
+```{r echo=FALSE}
+
+gather(pew_religion, income, cases, -religion, factor_key=T) %>%
+  ggplot(aes(income, cases)) + geom_col() +
+  theme(axis.text.x=element_text(hjust=1, angle=45))
+# geom_col() hace la estadística de conteo en función de los grupos dados por el eje x
+
+```
+
+**¿Cómo lo harías con el conjunto original?**
+
+Fíjate que este gráfico es mucho más fácil de realizar si en lugar de tener los intervalos de ingresos repartidos en columnas los tuvieramos como una variable.
+
+Para convertir este conjunto a formato *tidy* tendremos que agrupar todas las columnas excepto la de `religion` en dos, una llamada `income` con los intervalos de ingresos, y otra llamada `freq` con el número de casos para cada `income`. Como ya hemos visto en el ejemplo del conjunto IRIS, esto se consigue con `gather`.
+
+### Ejercicio 1
+
+Convierte el dataset `pew_religion` a formato *tidy* usando `gather`. La columna `income` debe contener una variable de tipo `factor`.
+
+Empiezo descargando el conjunto de datos. Despues con str visualizo que variables tiene. Uso el operador pipe primero transformo a tidy con gather, usando todas las columnas menos religion. Despues para pasar la columnan a factor uso mutate.
+
+```{r}
+load('data/pew_religion.Rdata')
+str(pew_religion)
+
+pew_religion %>% gather(key="income", value="n people", -religion) %>%  mutate(income = as.factor(income))
+
+
+
+```
+
+Otro ejemplo usando el conjunto de datos `Billboard` que muestra cuando una canción entró en el top 100.
+
+```{r load billboard}
+load('data/billboard.Rdata')
+head(raw[, 1:12])
+```
+
+La posición (*ranking*) de cada canción en cada semana después de haber entrado en el Top 100 se almacena en las columnas `wk1` a `wk76` (ver `str(raw)`). Si un tema sale del Top 100 antes de 76 semanas se rellenan los datos con NA's.
+
+Para obtener la versión *tidy* hemos de juntar todas las columnas desde `wk1` a `wk76` asignando como clave (`key`) una variable de nombre `week`, como valor (`value`) otra variable de nombre `rank`.
+
+### Ejercicio 2
+
+Obtén la versión *tidy* de este conjunto de datos usando `pivot_longer`.
+
+Consejo: puedes eliminar el prefijo `wk` de las semanas mediante el argumento `names_prefix`. Opcionalmente puedes crear una columna `date` a partir de `date.entered`, sumando las semanas transcurridas desde la fecha de entrada en lista.
+
+```{r}
+
+
+```
+
+## Varias variables en una misma columna
+
+El conjunto de datos `tuberculosis`, de la *World Health Organization*, presenta este tipo de desordenación (además de la vista en el apartado anterior). Muestra el número de casos de tuberculosis por país, año y grupo demográfico. Estos grupos demográficos se muestran en los nombres de las columnas como `m` o `f` (sexo) y la edad (0-14, 15-24, 25-34, 35-44, 45-54, 55-64, 65- y desconocido (`u`)).
+
+```{r load TB}
+load('data/tb.Rdata')
+head(raw[, 1:16])
+```
+
+Podemos ver como efectivamente en una columna tenemos dos variables juntas, el sexo y el rango de edad. Por ejemplo, en `m014` la `m` hace referencia al sexo y `014` al rango de edad, dos variables que deberían estar separadas.
+
+Para pasar a formato *tidy* necesitamos realizar dos operaciones en este caso. En la primera juntaremos todas las columnas `m...` y `f...` y los conteos (los llamaremos `casos`). En la segunda, separaremos las columnas con los datos de tipo `m014` en dos columnas, `sexo` y `edad`.
+
+### Ejercicio 3
+
+Convierte el conjunto de datos TB en *tidy* utilizando `gather` y `separate`.
+
+```{r}
+
+```
+
+## Variables almacenadas tanto en filas como en columnas
+
+Esta es la forma más complicada de datos desordenados, y es lo que ocurre en el conjunto de datos del *Global Historical Climatology Network*. Se muestra el tiempo para la estación `MX17004`, en México, durante 5 meses del año 2010.
+
+```{r load weather}
+load('data/weather.Rdata')
+head(raw[, 1:20])
+```
+
+Como se observa, además de las variables `id`, `year` y `month`, tiene variables en las columnas `d1` a `d31` que deberían corresponder a una única variable `dia`, y en las filas, `tmin` y `tmax` deberían estar como columnas. Fíjate además que la columna `element` no es una variable, sino que almacena nombres de variables.
+
+Para obtener la versión *tidy* primero juntamos todos los días en una variable `dia`. Luego tendremos que separar la columna `element` en dos columnas, `tmax` y `tmin`. Esto último lo lograremos con la función `pivot_wider` de tidyr, que no hemos utilizado hasta ahora.
+
+### Ejercicio 4
+
+Obtén la versión *tidy* del conjunto de datos `weather` utilizando las funciones `pivot_longer` y `pivot_wider`. Además cambiaremos las columnas `year`, `month` y `dia` por una única variable `fecha`. Para que la operación `pivot_wider` no de error tendremos que eliminar los NA's cuando usemos `pivot_longer`.
+
+```{r}
+
+
+```
+
+# DPLYR
+
+## Introducción y objetivos.
+
+El objetivo de esta práctica es manejar data frames estructurados (variables en columnas, muestras en filas) con **tidyR** de una manera eficiente y sencilla utilizando la librería **DPLYR**. Esta librería fue desarrollada por Hadley Wickham (el creador de tidyR) con funciones programadas en C++ de manera óptima. Cuando hablamos de manejar data frames nos referimos a realizar operaciones sobre las muestras y sobre las variables tales como:
+
+1.  Seleccionar muestras de un data frame en base a algún tipo de criterio.
+2.  Seleccionar variables que cumplan alguna condición.
+3.  Ordenar las muestras de un data frame.
+4.  Unir varios data frames.
+5.  Crear nuevas variables a partir de las variables existentes.
+6.  Agrupar muestras que cumplan algún criterio para realizar cálculos estadísticos.
+
+Para llevar a cabo estas operaciones **DPLYR** proporciona una serie de funciones que enumeramos a continuación:
+
+- `select()`. Permite seleccionar un subconjunto de las variables (columnas) del data frame.
+- `filter()`. Esta función, como su propio nombre indica, permite filtrar las muestras (filas) de un data frame en base a algún criterio.
+- `group_by()`. Esta función crea grupos de muestras a partir de las categorías de una variable.
+- `summarise()`. Esta función facilita el cálculo de parámetros estadísticos de las variables de un data frame.
+- `arrange()`. Permite reordenar las muestras de un data frame.
+- `XXX_join()`. Las funciones de la familia *XXX_join* permiten combinar data frames.
+- `rename()`. Esta función permite renombrar variables de un data frame.
+- `mutate()`. Esta función permite añadir nuevas variables (columnas) a partir de la transformación de columnas ya existentes.
+- `%>%` Es el operador *pipe* que permite concatenar funciones.
+
+En clase de teoría te han explicado cómo utilizar estas funciones y ya has trabajado con ellas, así que vamos a ver como te desenvuelves con **DPLYR**.
+
+Vamos a cargar el conjunto de datos `VuelosNY.Rdata` que contiene dos data frames: `flights` y `planes`.
+
+```{r, include=FALSE}
+
+library(dplyr)
+#library(dbplyr)
+rm(list=ls())
+load("./data/VuelosNY.Rdata")
+```
+
+### Ejercicio 5
+
+Muestra las primeras muestras de ambos data frames para hacerte una idea de las variables que contienen. ¿Qué diferencia existe entre la información mostrada en ambos data frames?
+
+```{r }
+
+```
+
+### Ejercicio 6
+
+En nuestro estudio queremos aplicar una serie de criterios de exclusión sobre las muestras de ambos data frames. En concreto queremos eliminar los aviones fabricados por el fabricante MCDONELL DOUGLAS (vigila si existe más de una denominación de esta compañía en la variable `manufacturer`). Del mismo modo, queremos seleccionar aquellos aviones en los que el número de asientos esté entre 90 y 210 (variable `seats`). Aplica las dos operaciones de filtrado secuencialmente utilizando el operador *pipe* y almacena el data frame resultante en `planes.f`. En el data frame resultante unifica las denominaciones del fabricante `AIRBUS` bajo la denominación `"AIRBUS COMP"`.
+
+- Nota: Revisar el uso de la función filter vista en clase y tener en cuenta los operadores de comparación: igual ==, distinto !=, mayor \>, mayor o igual \>=, menor \<, menor o igual \<=.
+
+```{r }
+
+
+
+```
+
+### Ejercicio 7
+
+Crea un data frame denominado `flights.f` que contenga los vuelos que involucren a los aviones presentes en el data frame `planes.f`. Para ello utiliza algunas de las funciones de **XXX_join** y la variable `tailnum` que es común en ambos data frames.
+
+```{r }
+
+
+```
+
+### Ejercicio 8
+
+Reasigna los nombres de los data frames `planes.f` y `flights.f` a los nombres originales `planes` y `flights`.
+
+```{r }
+
+```
+
+### Ejercicio 9
+
+Existen variables que, a priori, no tienen demasiado interés para el estudio que queremos llevar a cabo, en particular queremos eliminar:
+
+- En el data frame `flights` quédate con todas las variables excepto `time_hour` y las variables que terminan con la palabra "time".
+- En el data frame `planes` quédate con todas las variables excepto `speed` y `type`.
+
+```{r }
+
+```
+
+### Ejercicio 10
+
+Incorpora una nueva variable a `flights` denominado `Full_Date` que sea de tipo `character` que incorpore una cadena de texto de la forma `d-m-Y`. Donde `d` indica día, `m` mes e `Y` año, a partir de la información incluida en el data frame. Utiliza una función de **DPLYR** que permita conseguir este propósito. Elimina las variables originales involucradas en la creación de la nueva variable.
+
+```{r }
+
+
+```
+
+### Ejercicio 11
+
+Utilizando las funciones `group_by`, `summarise` y `filter`, crea un data frame donde se calcule el número de vuelos (`Num_flights`), la distancia media recorrida (`Mean_distance`) y la distancia total recorrida (`Total_distance`) para cada uno de los aviones (`tailnum`) presentes en el conjunto `flights`. Descarta aquellos registros del data frame en los que la variable `tailnum` tenga un valor NA. Utiliza el operador pipe para enlazar las funciones. Almacena el data frame en una variable denominada `Distances_plane`.
+
+```{r }
+
+```
+
+# Ejercicios Extra
+
+## TidyR. Varias unidades de observación en una sola tabla
+
+Volvemos al ejemplo del conjunto `Billboard` para ilustrar este caso. Si nos fijamos en la versión *tidy* que hemos obtenido en el ejercicio 2 vemos como `artist` y `time` se repiten para cada canción (`track`) y semana. Para evitar estas repeticiones hemos de dividir el dataframe en dos, uno de canciones donde almacenaremos el artista, el nombre de la canción y el tiempo, y otro con el *ranking* de canciones que nos dará la posición en el Top 100, la canción y la semana. A esta división de los datos en varias tablas para evitar duplicados se le llama *normalización*, y es habitual cuando estamos trabajando con datos almacenados en bases de datos, si bien no lo es tanto en el campo del análisis de datos, donde muchas veces para analizarlos se requiere volver a juntar de nuevo los datos en una única tabla.
+
+### Ejercicio Extra 1
+
+Separa los datos *tidy* que teníamos en el ejercicio 2 en dos tablas (data frames) tal y como se describe en el párrafo anterior y empleando la función `unique` para eliminar repeticiones.
+
+Opcionalmente se puede crear un identificador, `id`, asociado al nombre de la canción (`track`), y en la tabla de ranking solo usaremos este identificador en lugar del nombre de la canción.
+
+```{r}
+
+
+
+```
+
+## TidyR. Una única unidad de observación almacenada en varias tablas
+
+También nos podemos encontrar casos donde las observaciones están distribuidas en varias tablas. El procedimiento general para abordar estos casos es:
+
+1.  Leer todos los ficheros en una lista de tablas.
+2.  Añadir una nueva columna a cada tabla con el nombre del fichero original.
+3.  Combinar todas las tablas en una.
+
+Esto se puede hacer fácilmente con las librerías `plyr` y `dplyr`.
+
+## TidyR. Otro conjunto messy...
+
+### Ejercicio Extra 2
+
+En la librería *tidyr* hay varios conjuntos de datos. **table1** es un conjunto *tidy* pero **table5** no lo es. Realiza las operaciones necesarias para obtener **table1** a partir de **table5**. También deben coincidir los tipos de datos de las columnas.
+
+```{r}
+
+
+```
+
+## DPLYR
+
+### Ejercicio Extra 3
+
+Consigue un data frame denominado `Distance_Manufacturer_model` que contenga 4 columnas (`tailnum`,`Total_distance`, `manufacturer` y `model`) ordenado de mayor a menor en base a la variable `Total_distance`. Para ello une los data frames `Distances_plane` (calculado en el ejercicio anterior y que contiene las distancias totales) y `planes` (que contiene los datos de cada modelo de avión). La variable que te permitirá unir ambos data frames es `tailnum`. A continuación deberás ordenar, en orden descendente de la variable `Total_distance` el data frame resultante. Finalmente selecciona las variables que tiene que contener la tabla final (`Total_distance`, `manufacturer` y `model`). Utiliza el operador pipe para enlazar las funciones.
+
+```{r }
+
+```
+
+### Ejercicio Extra 4
+
+Queremos averiguar si existe algún tipo de relación entre el retraso de los vuelos (llegada y salida) y el fabricante. Para ello queremos calcular el retraso medio en la llegada y en la salida de los vuelos (cuando se disponga de esos datos) para cada uno de los fabricantes (`manufacturer`). Propón la estrategia (y el código) a emplear para conseguir proporcionar un data frame ordenado del retraso en la llegada y la salida para cada uno de los fabricantes. ¿Cuáles son los dos fabricantes de aviones que más se retrasan en las salidas? ¿Y en las llegadas?
+
+```{r }
+
+```
+
+```{r }
+
+# ##EXTRA incluye IATA code
+# 
+# 
+# #library(readr)
+# # IATA_code <- read_delim("data/IATA_code.csv",delim = "\t", escape_double = FALSE, trim_ws = TRUE)%>%
+# #   select("IATA code","IATA airlines")
+# # names(IATA_code)<-c('code','airline')
+# # 
+# # IATA_code<-IATA_code%>%tidyr::separate(col=code,into=c('borrar','carrier'),sep=' +[–] +')%>%select(-borrar)
+# library(readxl)
+# IATA_ICAO <- read_excel("data/Bansard-airlines-codes-IATA-ICAO.xlsx")%>%select(`Airline Name`,`IATA Designator`)%>%rename(carrierName=`Airline Name`,carrier=`IATA Designator`) 
+# 
+# flights<-left_join(flights,IATA_ICAO,by='carrier')
+# flights%>%filter(!is.na(dep_delay),!is.na(arr_delay))%>%left_join(planes,by='tailnum')%>%group_by(carrierName)%>%summarize(RetSal=mean(dep_delay,na.rm=TRUE),RetLle=mean(arr_delay,na.rm=TRUE))%>%arrange(desc(RetSal))
+```
+
+### Ejercicio Extra 5
+
+Lo que hemos hecho en el ejercicio anterior está bien, pero vale más una imagen que mil palabras. Vamos a plantear representaciones gráficas para visualizar el retraso de cada compañía.
+
+```{r, include=FALSE}
+library(tidyr)
+library(ggplot2)
+```
+
+- Representa los boxplots de las variables relacionadas con el retraso en la llegada y en la salida (las que terminan con la palabra `delay`) agrupadas por compañía aérea (variable `carrier`) dibujando en dos colores diferentes cada tipo de retraso: tendrás que modificar el data frame con la función `pivot_longer` para crear una nueva variable que indique el tipo de retraso (llegada y salida) que sirva para colorear agrupando por cada tipo de retraso.
+
+```{r }
+
+
+```
+
+- Representa un gráfico de barras que contenga, para cada compañía aérea (`carrier`), el retraso medio de llegadas, de salidas y el retraso global (nueva variable con el promedio del retraso de salida y el retraso de llegadas). El eje $x$ representará la compañía aérea y el eje $y$ el retraso. Las barras de cada tipo de retraso (llegadas, salidas y global) tendrán un color de relleno diferente (tendrás que modificar el data frame con la función `pivot_longer` para crear una nueva variable que indique el tipo de retraso) y se posicionarán una junto a la otra (no apiladas). No olvides añadir etiquetas en los ejes $x$ e $y$.
+
+```{r }
+
+
+```
+
+¿Cuál de las dos representaciones anteriores es más adecuada para visualizar los retrasos?
+
+### Ejercicio Extra 6
+
+Utilizando los conjuntos de datos `flights` y `planes` responde a las siguientes preguntas
+
+1.  ¿Qué avión(tailnum) ha realizado más vuelos entre la ruta JFK (origen) y SFO (destino), en relación a su fecha de construcción `year`)? ¿de qué compañia aérea(carrier) es? ¿Cuál es el modelo de avión y cuántos asientos tiene?
+
+2.  Indica cuántas compañias aéreas (carrier) operan la ruta entre Nueva York (JFK) y Los Ángeles (LAX). ¿Cuántos aviones distintos han realizado esta ruta ?. Realiza un histograma de las duraciones de los vuelos entre ambos aeropuertos. ¿Son todos vuelos directos ?
+
+3.  ¿Qué companía aérea elegirías si tienes que ir desde La Guardia (LGA) a Denver (DEN) en el menor tiempo posible (en promedio), considerando los retrasos de salida y llegada. ¿Cuál es la duración media del vuelo (en horas)?
+
+```{r}
+#1
+
+```
+
+```{r}
+#2 
+
+```
+
+```{r}
+#2 Histograma
+
+```
+
+```{r}
+
+
+```
