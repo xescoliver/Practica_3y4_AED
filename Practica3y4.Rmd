@@ -390,7 +390,9 @@ En nuestro estudio queremos aplicar una serie de criterios de exclusión sobre l
 
 - Nota: Revisar el uso de la función filter vista en clase y tener en cuenta los operadores de comparación: igual ==, distinto !=, mayor \>, mayor o igual \>=, menor \<, menor o igual \<=.
 
-Como nos dice el enunciado que revisemos por escrituras alternativas de MCDONELL DOUGLAS uso unique para visualizar todos los nombres de manufacturer. Veo que efectivamente hay unas cuantas denominaciones distintas. Como todas incluyen la palabra douglas voy a filtrar para encontrar todas con la función grep.
+Como nos dice el enunciado que revisemos por escrituras alternativas de MCDONELL DOUGLAS uso unique para visualizar todos los nombres de manufacturer. Veo que efectivamente hay unas cuantas denominaciones distintas. Como todas incluyen la palabra douglas voy a filtrar para encontrar todas con la función grep. Después uso filter para solo usar los valroes de seat que tocan y eliminar los casos en los que el manufacturer que son los Douglas.
+
+FInalmente filtro los aviones en los que Airbus es el manufacturer y cambio el nombre a AIRBUS COMP.
 
 ```{r }
 
@@ -400,9 +402,15 @@ nombres <- grep("DOUGLAS", unique(planes$manufacturer), value=TRUE)
 nombres
 
 
-planes %>% filter(seats >=90 & seats <=210)
+planes.f <- planes %>% filter(seats >=90 & seats <=210) %>% filter(!(manufacturer%in%nombres)) 
 
+planes.f <- planes.f %>% mutate(manufacturer = ifelse( 
+                    grepl("AIRBUS", manufacturer),
+                      "AIRBUS COMP",
+                      manufacturer
+                      ))
 
+planes.f
 ```
 
 ### Ejercicio 7
