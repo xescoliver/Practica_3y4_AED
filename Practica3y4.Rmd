@@ -376,8 +376,12 @@ load("./data/VuelosNY.Rdata")
 
 Muestra las primeras muestras de ambos data frames para hacerte una idea de las variables que contienen. ¿Qué diferencia existe entre la información mostrada en ambos data frames?
 
+Visualizamos los primeros valores con head. Vemos que casi no hay nada que ver entre los dos datasests. planes son datos sobre aviones y flights son datos sobre vuelos. Tienen en común una variable tailnum, que supongo que es algun tipo de identificador de un avión, con lo que teniendo esa información en un vuelo podríamos ir a la tabla planes y obtener más información sobre el avión.
+
 ```{r }
 
+head(planes)
+head(flights)
 ```
 
 ### Ejercicio 6
@@ -386,8 +390,17 @@ En nuestro estudio queremos aplicar una serie de criterios de exclusión sobre l
 
 - Nota: Revisar el uso de la función filter vista en clase y tener en cuenta los operadores de comparación: igual ==, distinto !=, mayor \>, mayor o igual \>=, menor \<, menor o igual \<=.
 
+Como nos dice el enunciado que revisemos por escrituras alternativas de MCDONELL DOUGLAS uso unique para visualizar todos los nombres de manufacturer. Veo que efectivamente hay unas cuantas denominaciones distintas. Como todas incluyen la palabra douglas voy a filtrar para encontrar todas con la función grep.
+
 ```{r }
 
+unique(planes$manufacturer)
+
+nombres <- grep("DOUGLAS", unique(planes$manufacturer), value=TRUE)
+nombres
+
+
+planes %>% filter(seats >=90 & seats <=210)
 
 
 ```
