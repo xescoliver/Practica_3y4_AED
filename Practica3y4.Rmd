@@ -443,8 +443,15 @@ Existen variables que, a priori, no tienen demasiado interés para el estudio qu
 - En el data frame `flights` quédate con todas las variables excepto `time_hour` y las variables que terminan con la palabra "time".
 - En el data frame `planes` quédate con todas las variables excepto `speed` y `type`.
 
+Filtro usando el operador select para seleccionar todas menos las que quiero eliminar y reasignando. Usando el operador - hago que no se seleccione esa.
+
 ```{r }
 
+flights <- flights %>% select(-time_hour, -ends_with("time"))
+str(flights)
+
+planes <- planes %>% select(-speed, -type)
+str(planes)
 ```
 
 ### Ejercicio 10
