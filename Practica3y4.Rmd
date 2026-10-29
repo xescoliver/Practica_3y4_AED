@@ -532,9 +532,18 @@ Esto se puede hacer fácilmente con las librerías `plyr` y `dplyr`.
 
 En la librería *tidyr* hay varios conjuntos de datos. **table1** es un conjunto *tidy* pero **table5** no lo es. Realiza las operaciones necesarias para obtener **table1** a partir de **table5**. También deben coincidir los tipos de datos de las columnas.
 
+Primero observamos qje la table 5 tiene el dato año separado en century y year. También vemos que en la columna rate estan almacenados los valores de cases y de population. Para arreglarlo debemos jcrear las nuevas columnas como combinaciones de las columnas anteriores. Para ello usamos las funciones de Tidyr unite y separate.
+
 ```{r}
+library(tidyr)
 
+head(table1)
 
+head(table5)
+
+new_table1 <- table5 %>% unite(century, year, col="year", sep="" ) %>% separate(rate, sep="/", into=c("cases", "pop"))
+
+new_table1
 ```
 
 ## DPLYR
