@@ -232,9 +232,33 @@ Obtén la versión *tidy* de este conjunto de datos usando `pivot_longer`.
 
 Consejo: puedes eliminar el prefijo `wk` de las semanas mediante el argumento `names_prefix`. Opcionalmente puedes crear una columna `date` a partir de `date.entered`, sumando las semanas transcurridas desde la fecha de entrada en lista.
 
+Primero miro los datos mejor con str. Veo las variables y los tipos. Seguidamente paso a tidy usando pivot longer. Elijo las columnas con starts with para filtrar las semanas.
+
+```{r}
+str(raw)
+
+raw_tidy <- raw %>%
+  pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    values_to = "rank",
+    names_prefix = "wk"
+  ) %>% mutate(week = as.numeric(week))
+
+raw_tidy
+
+```
+
+Ahora añado una nueva columan con mutate que se corresponda a las dates en formato date.
+
 ```{r}
 
+raw_tidy <- raw_tidy %>%
+  mutate(
+    date = as.Date(date.entered) + 7 * (week - 1)
+  )
 
+head(raw_tidy)
 ```
 
 ## Varias variables en una misma columna
@@ -254,8 +278,18 @@ Para pasar a formato *tidy* necesitamos realizar dos operaciones en este caso. E
 
 Convierte el conjunto de datos TB en *tidy* utilizando `gather` y `separate`.
 
+Primero utilizamos gather para transformar el dataset a formato largo, agrupando las columnas de los distintos grupos demográficos en dos nuevas columnas.
+
+Después utilizamos separate para dividir la columna grupo en dos variables independientes: sexo y edad, separándolas por el primer carácter, por eso usamos el 1.
+
 ```{r}
 
+TB_tidy <- raw %>%
+  gather( key = "grupo", value = "casos", -country, -year
+  ) %>% separate(
+    col = grupo, into = c("sexo", "edad"), sep = 1)
+
+TB_tidy
 ```
 
 ## Variables almacenadas tanto en filas como en columnas
